@@ -15,6 +15,12 @@ const ImageResizer = ({ transferToTab, pendingImageTransfer, availableTabs }) =>
   const [resizeMethod, setResizeMethod] = useState('bilinear')
   const [loading, setLoading] = useState(false)
   
+  // הוספת state לבחירה מרובה
+  const [selectedSizes, setSelectedSizes] = useState(new Set())
+  const [resizedImages, setResizedImages] = useState([])
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false)
+  const [showSuccessMessage, setShowSuccessMessage] = useState('')
+  
   const canvasRef = useRef(null)
   const fileInputRef = useRef(null)
 
@@ -60,13 +66,18 @@ const ImageResizer = ({ transferToTab, pendingImageTransfer, availableTabs }) =>
 
   // גדלים מוגדרים מראש
   const presetSizes = [
-    { name: 'אייקון קטן', width: 16, height: 16 },
-    { name: 'אייקון בינוני', width: 32, height: 32 },
-    { name: 'אייקון גדול', width: 64, height: 64 },
-    { name: 'תמונת פרופיל', width: 128, height: 128 },
-    { name: 'תמונת כותרת', width: 1200, height: 630 },
-    { name: 'HD', width: 1920, height: 1080 },
-    { name: '4K', width: 3840, height: 2160 },
+    { name: 'פביקון', width: 32, height: 32 },
+    { name: 'אייקון קטן', width: 64, height: 64 },
+    { name: 'אייקון בינוני', width: 128, height: 128 },
+    { name: 'אייקון גדול', width: 256, height: 256 },
+    { name: 'תמונת פרופיל', width: 512, height: 512 },
+    { name: 'VGA', width: 640, height: 480 },
+    { name: 'SVGA', width: 800, height: 600 },
+    { name: 'XGA', width: 1024, height: 768 },
+    { name: 'HD', width: 1280, height: 720 },
+    { name: 'WXGA', width: 1366, height: 768 },
+    { name: 'Full HD', width: 1920, height: 1080 },
+    { name: '2K', width: 2560, height: 1440 },
     { name: 'Instagram Post', width: 1080, height: 1080 },
     { name: 'Instagram Story', width: 1080, height: 1920 },
     { name: 'Facebook Cover', width: 820, height: 312 }
@@ -84,6 +95,8 @@ const ImageResizer = ({ transferToTab, pendingImageTransfer, availableTabs }) =>
           setOriginalDimensions({ width: img.width, height: img.height })
           setNewDimensions({ width: img.width, height: img.height })
           setResizedImage(null)
+          setResizedImages([])
+          setSelectedSizes(new Set())
           
           // שמירה אוטומטית לספרייה
           addImage(e.target.result, {
@@ -97,6 +110,186 @@ const ImageResizer = ({ transferToTab, pendingImageTransfer, availableTabs }) =>
       }
       reader.readAsDataURL(file)
     }
+  }
+
+  // פונקציות לבחירה מרובה של גדלים
+  const handleSizeSelection = (sizeIndex) => {
+    const newSelectedSizes = new Set(selectedSizes)
+    if (newSelectedSizes.has(sizeIndex)) {
+      newSelectedSizes.delete(sizeIndex)
+    } else {
+      newSelectedSizes.add(sizeIndex)
+    }
+    setSelectedSizes(newSelectedSizes)
+  }
+
+  const selectAllSizes = () => {
+    if (selectedSizes.size === presetSizes.length) {
+      setSelectedSizes(new Set())
+    } else {
+      setSelectedSizes(new Set(Array.from({ length: presetSizes.length }, (_, i) => i)))
+    }
+  }
+
+  // שינוי גודל לכמה גדלים בבת אחת
+  const resizeToMultipleSizes = async () => {
+    if (!selectedImage || selectedSizes.size === 0) return
+
+    setIsBatchProcessing(true)
+    const results = []
+
+    const img = new Image()
+    await new Promise((resolve) => {
+      img.onload = resolve
+      img.src = selectedImage
+    })
+
+    for (const sizeIndex of selectedSizes) {
+      const size = presetSizes[sizeIndex]
+      
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      
+      canvas.width = size.width
+      canvas.height = size.height
+      
+      // הגדרות איכות
+      if (resizeMethod === 'bilinear') {
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+      } else if (resizeMethod === 'nearest') {
+        ctx.imageSmoothingEnabled = false
+      } else if (resizeMethod === 'bicubic') {
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+      }
+
+      // שינוי גודל מתקדם אם נדרש
+      if (originalDimensions.width > size.width * 2 || originalDimensions.height > size.height * 2) {
+        resizeInStepsToCanvas(img, ctx, originalDimensions, size)
+      } else {
+        ctx.drawImage(img, 0, 0, size.width, size.height)
+      }
+
+      const dataUrl = canvas.toDataURL(imageFormat, imageQuality)
+      const extension = imageFormat === 'image/png' ? 'png' : imageFormat === 'image/jpeg' ? 'jpg' : 'webp'
+      
+      results.push({
+        name: size.name,
+        size: `${size.width}×${size.height}`,
+        dataUrl: dataUrl,
+        filename: `resized_${size.name}_${size.width}x${size.height}.${extension}`,
+        width: size.width,
+        height: size.height
+      })
+    }
+
+    setResizedImages(results)
+    setIsBatchProcessing(false)
+  }
+
+  // פונקציה עזר לשינוי גודל הדרגתי לcanvas חיצוני
+  const resizeInStepsToCanvas = (img, finalCtx, originalSize, targetSize) => {
+    let currentWidth = originalSize.width
+    let currentHeight = originalSize.height
+    
+    const tempCanvas = document.createElement('canvas')
+    const tempCtx = tempCanvas.getContext('2d')
+    
+    tempCanvas.width = currentWidth
+    tempCanvas.height = currentHeight
+    tempCtx.drawImage(img, 0, 0)
+    
+    while (currentWidth > targetSize.width * 2 || currentHeight > targetSize.height * 2) {
+      currentWidth = Math.max(currentWidth * 0.5, targetSize.width)
+      currentHeight = Math.max(currentHeight * 0.5, targetSize.height)
+      
+      const newCanvas = document.createElement('canvas')
+      const newCtx = newCanvas.getContext('2d')
+      newCanvas.width = currentWidth
+      newCanvas.height = currentHeight
+      
+      newCtx.imageSmoothingEnabled = true
+      newCtx.imageSmoothingQuality = 'high'
+      newCtx.drawImage(tempCanvas, 0, 0, currentWidth, currentHeight)
+      
+      tempCanvas.width = currentWidth
+      tempCanvas.height = currentHeight
+      tempCtx.clearRect(0, 0, currentWidth, currentHeight)
+      tempCtx.drawImage(newCanvas, 0, 0)
+    }
+    
+    finalCtx.drawImage(tempCanvas, 0, 0, targetSize.width, targetSize.height)
+  }
+
+  // הורדת כל התמונות כ-ZIP
+  const downloadAllAsZip = async () => {
+    if (resizedImages.length === 0) return
+    
+    try {
+      const JSZip = window.JSZip
+      if (!JSZip) {
+        alert('טוען ספריית ZIP...')
+        return
+      }
+      
+      const zip = new JSZip()
+      
+      for (const image of resizedImages) {
+        const response = await fetch(image.dataUrl)
+        const blob = await response.blob()
+        zip.file(image.filename, blob)
+      }
+      
+      const zipBlob = await zip.generateAsync({ type: 'blob' })
+      
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(zipBlob)
+      link.download = `resized_images_${Date.now()}.zip`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+    } catch (error) {
+      console.error('שגיאה בהורדת ZIP:', error)
+      alert('שגיאה ביצירת קובץ ZIP. אנא נסה שוב.')
+    }
+  }
+
+  // הורדת תמונה יחידה
+  const downloadSingleResizedImage = (image) => {
+    const link = document.createElement('a')
+    link.href = image.dataUrl
+    link.download = image.filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // שמירת תמונה יחידה בספרייה
+  const saveSingleToLibrary = (image) => {
+    addImage(image.dataUrl, {
+      name: `${image.name} ${image.size}`,
+      tool: 'image-resizer-batch',
+      originalName: image.filename,
+      timestamp: new Date()
+    })
+    setShowSuccessMessage('תמונה נשמרה בספרייה')
+    setTimeout(() => setShowSuccessMessage(''), 3000)
+  }
+
+  // שמירת כל התמונות בספרייה
+  const saveAllToLibrary = () => {
+    resizedImages.forEach((image, index) => {
+      addImage(image.dataUrl, {
+        name: `${image.name} ${image.size} - #${index + 1}`,
+        tool: 'image-resizer-batch',
+        originalName: image.filename,
+        timestamp: new Date()
+      })
+    })
+    setShowSuccessMessage(`נשמרו ${resizedImages.length} תמונות בספרייה`)
+    setTimeout(() => setShowSuccessMessage(''), 3000)
   }
 
   // פונקציה לשמירת יחס גובה-רוחב
@@ -289,8 +482,24 @@ const ImageResizer = ({ transferToTab, pendingImageTransfer, availableTabs }) =>
     <div className="image-resizer">
       <div className="resizer-header">
         <h2>🔧 שינוי גודל תמונות מתקדם</h2>
-        <p>שנה את גודל התמונות שלך עם דיוק פיקסל ואיכות מקצועית</p>
+        <p>שנה את גודל התמונות שלך עם דיוק פיקסל ואיכות מקצועית - עכשיו עם בחירה מרובה!</p>
       </div>
+
+      {/* הודעת הצלחה */}
+      {showSuccessMessage && (
+        <div style={{
+          background: 'linear-gradient(135deg, #d4edda, #c3e6cb)',
+          color: '#155724',
+          padding: '12px 20px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #c3e6cb',
+          textAlign: 'center',
+          fontWeight: '600'
+        }}>
+          ✅ {showSuccessMessage}
+        </div>
+      )}
 
       {!selectedImage ? (
         <div className="upload-section">
@@ -374,20 +583,116 @@ const ImageResizer = ({ transferToTab, pendingImageTransfer, availableTabs }) =>
             </div>
 
             <div className="preset-sizes">
-              <h3>📐 גדלים מוגדרים מראש</h3>
-              <div className="preset-grid">
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ margin: '0', marginLeft: '15px' }}>📐 גדלים מוגדרים מראש:</h3>
+                <button
+                  onClick={selectAllSizes}
+                  style={{
+                    background: selectedSizes.size === presetSizes.length ? '#dc3545' : '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  {selectedSizes.size === presetSizes.length ? '❌ בטל הכל' : '✅ בחר הכל'}
+                </button>
+              </div>
+              
+              <div className="preset-grid" style={{ marginBottom: '20px' }}>
                 {presetSizes.map((preset, index) => (
-                  <button
+                  <label
                     key={index}
-                    className="preset-btn"
-                    onClick={() => applyPresetSize(preset)}
-                    title={`${preset.width} × ${preset.height}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '10px',
+                      border: selectedSizes.has(index) ? '2px solid #007bff' : '2px solid #e0e0e0',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      background: selectedSizes.has(index) ? '#f0f8ff' : '#fff',
+                      transition: 'all 0.2s',
+                      marginBottom: '5px'
+                    }}
                   >
-                    <span className="preset-name">{preset.name}</span>
-                    <span className="preset-size">{preset.width} × {preset.height}</span>
-                  </button>
+                    <input
+                      type="checkbox"
+                      checked={selectedSizes.has(index)}
+                      onChange={() => handleSizeSelection(index)}
+                      style={{ marginLeft: '10px', transform: 'scale(1.2)' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ 
+                        fontWeight: selectedSizes.has(index) ? '600' : '400',
+                        display: 'block'
+                      }}>
+                        {preset.name}
+                      </span>
+                      <span style={{ 
+                        fontSize: '12px', 
+                        color: '#666',
+                        display: 'block'
+                      }}>
+                        {preset.width} × {preset.height}
+                      </span>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        applyPresetSize(preset)
+                      }}
+                      style={{
+                        background: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '10px'
+                      }}
+                    >
+                      שימוש יחיד
+                    </button>
+                  </label>
                 ))}
               </div>
+
+              {selectedSizes.size > 0 && (
+                <div style={{
+                  background: '#e7f5e7',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '1px solid #28a745',
+                  fontSize: '14px',
+                  marginBottom: '15px'
+                }}>
+                  ✅ נבחרו {selectedSizes.size} גדלים לעיבוד
+                </div>
+              )}
+
+              {selectedSizes.size > 0 && (
+                <button 
+                  onClick={resizeToMultipleSizes}
+                  disabled={isBatchProcessing}
+                  style={{
+                    background: isBatchProcessing 
+                      ? 'linear-gradient(135deg, #6c757d, #5a6268)' 
+                      : 'linear-gradient(135deg, #28a745, #1e7e34)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    cursor: isBatchProcessing ? 'not-allowed' : 'pointer',
+                    marginBottom: '20px',
+                    fontSize: '16px',
+                    width: '100%'
+                  }}
+                >
+                  {isBatchProcessing ? '⏳ מעבד...' : `📦 שנה גודל ל-${selectedSizes.size} גדלים`}
+                </button>
+              )}
             </div>
 
             <div className="advanced-settings">
@@ -464,12 +769,117 @@ const ImageResizer = ({ transferToTab, pendingImageTransfer, availableTabs }) =>
                   setSelectedImage(null)
                   setResizedImage(null)
                   setNewDimensions({ width: 0, height: 0 })
+                  setResizedImages([])
+                  setSelectedSizes(new Set())
+                  setShowSuccessMessage('')
                 }}
               >
                 🔄 התחל מחדש
               </button>
             </div>
           </div>
+          
+          {/* תצוגת תוצאות מרובות */}
+          {resizedImages.length > 0 && (
+            <div style={{ marginTop: '30px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
+                <h3 style={{ margin: '0' }}>📁 תוצאות ({resizedImages.length} תמונות):</h3>
+                <button 
+                  onClick={downloadAllAsZip}
+                  style={{
+                    background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  📦 הורד הכל כ-ZIP
+                </button>
+                <button 
+                  onClick={saveAllToLibrary}
+                  style={{
+                    background: 'linear-gradient(135deg, #17a2b8, #138496)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  📚 שמור הכל בספרייה
+                </button>
+              </div>
+              
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', 
+                gap: '15px' 
+              }}>
+                {resizedImages.map((image, index) => (
+                  <div key={index} style={{
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    padding: '15px',
+                    background: '#fff',
+                    textAlign: 'center',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}>
+                    <img 
+                      src={image.dataUrl} 
+                      alt={image.name}
+                      style={{ 
+                        maxWidth: '100%', 
+                        maxHeight: '150px', 
+                        objectFit: 'contain',
+                        marginBottom: '10px',
+                        border: '1px solid #eee'
+                      }} 
+                    />
+                    <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '5px' }}>
+                      {image.name}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+                      {image.size}
+                    </div>
+                    <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                      <button
+                        onClick={() => downloadSingleResizedImage(image)}
+                        style={{
+                          background: '#28a745',
+                          color: 'white',
+                          border: 'none',
+                          padding: '6px 12px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        💾 הורד
+                      </button>
+                      <button
+                        onClick={() => saveSingleToLibrary(image)}
+                        style={{
+                          background: '#17a2b8',
+                          color: 'white',
+                          border: 'none',
+                          padding: '6px 12px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '12px'
+                        }}
+                      >
+                        📚 ספרייה
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
