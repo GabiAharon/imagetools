@@ -1,0 +1,9 @@
+name = "image-toolbox-platform"
+compatibility_date = "2024-03-04"
+
+[env.production]
+name = "image-toolbox-platform"
+
+[[env.production.routes]]
+pattern = "*/*"
+custom_domain = true 

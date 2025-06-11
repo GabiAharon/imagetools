@@ -1,0 +1,19 @@
+{
+  "tabOrder": [
+    "background",
+    "crop", 
+    "resize",
+    "format",
+    "ocr",
+    "watermark",
+    "qr"
+  ],
+  "navElementsOrder": [
+    "logo",
+    "tabs", 
+    "controls",
+    "profile"
+  ],
+  "version": "1.0",
+  "lastModified": "2024-01-01T00:00:00.000Z"
+} 

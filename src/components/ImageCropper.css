@@ -1,0 +1,294 @@
+.image-cropper {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.cropper-container {
+  position: relative;
+  max-width: 100%;
+  margin: 20px 0;
+  background: #f5f5f5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cropper-canvas {
+  max-width: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+.crop-area {
+  position: absolute;
+  border: 2px dashed #007bff;
+  background: rgba(0, 123, 255, 0.1);
+  cursor: move;
+}
+
+.crop-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #007bff;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: nwse-resize;
+}
+
+.crop-handle.nw { top: -5px; left: -5px; }
+.crop-handle.ne { top: -5px; right: -5px; }
+.crop-handle.sw { bottom: -5px; left: -5px; }
+.crop-handle.se { bottom: -5px; right: -5px; }
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-group label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.control-group select,
+.control-group input {
+  padding: 8px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.control-group select:focus,
+.control-group input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.aspect-ratios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.aspect-ratio-btn {
+  padding: 6px 12px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.aspect-ratio-btn:hover {
+  border-color: #007bff;
+  background: #f0f8ff;
+}
+
+.aspect-ratio-btn.active {
+  border-color: #007bff;
+  background: #007bff;
+  color: white;
+}
+
+.crop-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+  border-left: 4px solid #007bff;
+}
+
+.crop-info h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.crop-info p {
+  margin: 5px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+  transform: translateY(-1px);
+}
+
+.upload-area {
+  border: 2px dashed #007bff;
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  background: linear-gradient(135deg, #f0f8ff, #e6f3ff);
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-bottom: 20px;
+}
+
+.upload-area:hover {
+  border-color: #0056b3;
+  background: linear-gradient(135deg, #e6f3ff, #cce7ff);
+}
+
+.upload-area.dragover {
+  border-color: #28a745;
+  background: linear-gradient(135deg, #f0fff4, #e6ffed);
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: #007bff;
+  margin-bottom: 10px;
+}
+
+.upload-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.upload-hint {
+  font-size: 14px;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .aspect-ratios {
+    justify-content: center;
+  }
+}
+
+/* Dark mode styles for Image Cropper */
+[data-theme="dark"] .image-cropper {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+}
+
+[data-theme="dark"] .cropper-header h2,
+[data-theme="dark"] .cropper-header p,
+[data-theme="dark"] .controls h3,
+[data-theme="dark"] .controls label {
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .upload-area {
+  border-color: #475569 !important;
+  background: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .upload-area:hover {
+  border-color: #8b5cf6 !important;
+  background: #475569 !important;
+}
+
+[data-theme="dark"] .upload-area p,
+[data-theme="dark"] .upload-area span {
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .controls {
+  background: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .aspect-ratios {
+  background: #334155 !important;
+}
+
+[data-theme="dark"] .ratio-btn {
+  border-color: #475569 !important;
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .ratio-btn:hover {
+  border-color: #8b5cf6 !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .ratio-btn.active {
+  background: #8b5cf6 !important;
+  color: white !important;
+  border-color: #7c3aed !important;
+}
+
+[data-theme="dark"] .crop-canvas {
+  background: #0f172a !important;
+}
+
+[data-theme="dark"] .crop-info {
+  background: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+[data-theme="dark"] .result-section {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .result-actions {
+  color: #f1f5f9 !important;
+} 
