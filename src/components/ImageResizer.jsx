@@ -601,74 +601,88 @@ const ImageResizer = ({ transferToTab, pendingImageTransfer, availableTabs }) =>
                 </button>
               </div>
               
-              <div className="preset-grid" style={{ marginBottom: '20px' }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: '10px',
+                marginBottom: '20px'
+              }}>
                 {presetSizes.map((preset, index) => (
                   <label
                     key={index}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      padding: '10px',
-                      border: selectedSizes.has(index) ? '2px solid #007bff' : '2px solid #e0e0e0',
+                      padding: '12px 16px',
+                      border: selectedSizes.has(index) ? '2px solid #007bff' : '1px solid #e0e0e0',
                       borderRadius: '8px',
                       cursor: 'pointer',
-                      background: selectedSizes.has(index) ? '#f0f8ff' : '#fff',
-                      transition: 'all 0.2s',
-                      marginBottom: '5px'
+                      background: selectedSizes.has(index) ? 'linear-gradient(135deg, #f0f8ff, #e6f3ff)' : '#fff',
+                      transition: 'all 0.2s ease',
+                      boxShadow: selectedSizes.has(index) ? '0 2px 8px rgba(0,123,255,0.2)' : '0 1px 3px rgba(0,0,0,0.1)',
+                      transform: selectedSizes.has(index) ? 'translateY(-1px)' : 'translateY(0)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!selectedSizes.has(index)) {
+                        e.target.style.boxShadow = '0 2px 6px rgba(0,0,0,0.15)'
+                        e.target.style.transform = 'translateY(-1px)'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!selectedSizes.has(index)) {
+                        e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
+                        e.target.style.transform = 'translateY(0)'
+                      }
                     }}
                   >
                     <input
                       type="checkbox"
                       checked={selectedSizes.has(index)}
                       onChange={() => handleSizeSelection(index)}
-                      style={{ marginLeft: '10px', transform: 'scale(1.2)' }}
+                      style={{ 
+                        marginLeft: '8px', 
+                        transform: 'scale(1.2)',
+                        accentColor: '#007bff'
+                      }}
                     />
-                    <div style={{ flex: 1 }}>
-                      <span style={{ 
-                        fontWeight: selectedSizes.has(index) ? '600' : '400',
-                        display: 'block'
+                    <div style={{ flex: 1, textAlign: 'right' }}>
+                      <div style={{ 
+                        fontWeight: selectedSizes.has(index) ? '600' : '500',
+                        fontSize: '14px',
+                        color: selectedSizes.has(index) ? '#007bff' : '#333',
+                        marginBottom: '2px'
                       }}>
                         {preset.name}
-                      </span>
-                      <span style={{ 
+                      </div>
+                      <div style={{ 
                         fontSize: '12px', 
-                        color: '#666',
-                        display: 'block'
+                        color: selectedSizes.has(index) ? '#0056b3' : '#666',
+                        fontWeight: '400'
                       }}>
                         {preset.width} × {preset.height}
-                      </span>
+                      </div>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault()
-                        applyPresetSize(preset)
-                      }}
-                      style={{
-                        background: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '10px'
-                      }}
-                    >
-                      שימוש יחיד
-                    </button>
                   </label>
                 ))}
               </div>
 
               {selectedSizes.size > 0 && (
                 <div style={{
-                  background: '#e7f5e7',
-                  padding: '10px',
-                  borderRadius: '6px',
+                  background: 'linear-gradient(135deg, #e8f5e8, #d4edda)',
+                  padding: '15px 20px',
+                  borderRadius: '10px',
                   border: '1px solid #28a745',
                   fontSize: '14px',
-                  marginBottom: '15px'
+                  marginBottom: '20px',
+                  textAlign: 'center',
+                  boxShadow: '0 2px 4px rgba(40,167,69,0.1)'
                 }}>
-                  ✅ נבחרו {selectedSizes.size} גדלים לעיבוד
+                  <div style={{ fontWeight: '600', color: '#155724' }}>
+                    ✅ נבחרו {selectedSizes.size} גדלים לעיבוד
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#155724', marginTop: '4px' }}>
+                    לחץ על הכפתור למטה כדי לעבד את כל הגדלים
+                  </div>
                 </div>
               )}
 
@@ -679,18 +693,34 @@ const ImageResizer = ({ transferToTab, pendingImageTransfer, availableTabs }) =>
                   style={{
                     background: isBatchProcessing 
                       ? 'linear-gradient(135deg, #6c757d, #5a6268)' 
-                      : 'linear-gradient(135deg, #28a745, #1e7e34)',
+                      : 'linear-gradient(135deg, #ff6b35, #f7931e)',
                     color: 'white',
                     border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '8px',
+                    padding: '16px 24px',
+                    borderRadius: '12px',
                     cursor: isBatchProcessing ? 'not-allowed' : 'pointer',
                     marginBottom: '20px',
                     fontSize: '16px',
-                    width: '100%'
+                    fontWeight: '600',
+                    width: '100%',
+                    boxShadow: isBatchProcessing ? 'none' : '0 4px 12px rgba(255,107,53,0.3)',
+                    transition: 'all 0.2s ease',
+                    transform: isBatchProcessing ? 'none' : 'translateY(0)'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isBatchProcessing) {
+                      e.target.style.transform = 'translateY(-2px)'
+                      e.target.style.boxShadow = '0 6px 16px rgba(255,107,53,0.4)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isBatchProcessing) {
+                      e.target.style.transform = 'translateY(0)'
+                      e.target.style.boxShadow = '0 4px 12px rgba(255,107,53,0.3)'
+                    }
                   }}
                 >
-                  {isBatchProcessing ? '⏳ מעבד...' : `📦 שנה גודל ל-${selectedSizes.size} גדלים`}
+                  {isBatchProcessing ? '⏳ מעבד את התמונות...' : `🚀 שנה גודל ל-${selectedSizes.size} גדלים`}
                 </button>
               )}
             </div>
